@@ -1,27 +1,14 @@
-local bloco = Instance.new("Part")
-bloco.Size = Vector3.new(4993, 15, 4999)
-bloco.Position = Vector3.new(101, -446, -180)
-bloco.Anchored = true
-bloco.BrickColor = BrickColor.new("Bright White")
-bloco.Parent = workspace
 
-bloco.Touched:Connect(function(hit)
-    local player = game.Players:GetPlayerFromCharacter(hit.Parent)
-    if player then
-       print("ola mundo")
-wait(0.8) game:GetService("ReplicatedStorage").RE["1Ca1r"]:FireServer("DeleteAllVehicles")
-    end
-end)
-wait(0.2)
+-- Proteção contra queda no void
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-
 character:WaitForChild("HumanoidRootPart").Changed:Connect(function()
-    if character.HumanoidRootPart.Position.Y < -50 then
-        character:SetPrimaryPartCFrame(CFrame.new(0, 10, 0))
-    end
+	if character.HumanoidRootPart.Position.Y < -50 then
+		character:SetPrimaryPartCFrame(CFrame.new(0, 10, 0))
+	end
 end)
-wait(0.1)
+
+-- Interface Orion
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/main/source"))()
 local Window = OrionLib:MakeWindow({Name = "Towtruck Fling", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
 
@@ -31,279 +18,134 @@ local Tab = Window:MakeTab({
 	PremiumOnly = false
 })
 
+-- Lista de jogadores e seleção de alvo
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
 local playerNames = {}
 for _, player in pairs(Players:GetPlayers()) do
-    table.insert(playerNames, player.Name)
+	table.insert(playerNames, player.Name)
 end
 
 local selectedPlayerName = nil
 
 Tab:AddDropdown({
-    Name = "Target",
-    Options = playerNames,
-    Callback = function(selected)
-        selectedPlayerName = selected
-    end
+	Name = "Target",
+	Options = playerNames,
+	Callback = function(selected)
+		selectedPlayerName = selected
+	end
 })
 
+-- Função que executa o fling
 local function executeScript()
-    local UserInputService = game:GetService("UserInputService")
-    local Mouse = game.Players.LocalPlayer:GetMouse()
-    local Folder = Instance.new("Folder", Workspace)
-    local Part = Instance.new("Part", Folder)
-    local Attachment1 = Instance.new("Attachment", Part)
-    Part.Anchored = true
-    Part.CanCollide = false
-    Part.Transparency = 1
+	local Mouse = Players.LocalPlayer:GetMouse()
+	local Folder = Instance.new("Folder", Workspace)
+	local Part = Instance.new("Part", Folder)
+	local Attachment1 = Instance.new("Attachment", Part)
+	Part.Anchored = true
+	Part.CanCollide = false
+	Part.Transparency = 1
 
-    local NetworkAccess = coroutine.create(function()
-        settings().Physics.AllowSleep = false
-        while RunService.RenderStepped:Wait() do
-            for _, player in next, Players:GetPlayers() do
-                if player ~= Players.LocalPlayer then
-                    player.MaximumSimulationRadius = 0
-                    sethiddenproperty(player, "SimulationRadius", 0)
-                end
-            end
-            Players.LocalPlayer.MaximumSimulationRadius = math.pow(math.huge, math.huge)
-            setsimulationradius(math.huge)
-        end
-    end)
-    coroutine.resume(NetworkAccess)
+	-- Força simulação
+	local NetworkAccess = coroutine.create(function()
+		settings().Physics.AllowSleep = false
+		while RunService.RenderStepped:Wait() do
+			for _, p in next, Players:GetPlayers() do
+				if p ~= Players.LocalPlayer then
+					p.MaximumSimulationRadius = 0
+					sethiddenproperty(p, "SimulationRadius", 0)
+				end
+			end
+			Players.LocalPlayer.MaximumSimulationRadius = math.pow(math.huge, math.huge)
+			setsimulationradius(math.huge)
+		end
+	end)
+	coroutine.resume(NetworkAccess)
 
-    local function ForceVehicle(v)
-        if v:IsA("Model") and v:FindFirstChildOfClass("VehicleSeat") then
-            Mouse.TargetFilter = v
-            for _, x in next, v:GetDescendants() do
-                if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
-                    x:Destroy()
-                end
-            end
-            if v:FindFirstChild("Attachment") then
-                v:FindFirstChild("Attachment"):Destroy()
-            end
-            if v:FindFirstChild("AlignPosition") then
-                v:FindFirstChild("AlignPosition"):Destroy()
-            end
-            if v:FindFirstChild("Torque") then
-                v:FindFirstChild("Torque"):Destroy()
-            end
-            for _, part in next, v:GetDescendants() do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                    local Torque = Instance.new("Torque", part)
-                    Torque.Torque = Vector3.new(100000 * 12, 100000 * 12, 100000 * 12)
-                    local AlignPosition = Instance.new("AlignPosition", part)
-                    local Attachment2 = Instance.new("Attachment", part)
-                    Torque.Attachment0 = Attachment2
-                    AlignPosition.MaxForce = 999999
-                    AlignPosition.MaxVelocity = math.huge
-                    AlignPosition.Responsiveness = 200
-                    AlignPosition.Attachment0 = Attachment2
-                    AlignPosition.Attachment1 = Attachment1
-                end
-            end
-        end
-    end
+	-- Aplicar Torque e AlignPosition
+	local function ForceVehicle(v)
+		if v:IsA("Model") and v:FindFirstChildOfClass("VehicleSeat") then
+			Mouse.TargetFilter = v
+			for _, x in next, v:GetDescendants() do
+				if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
+					x:Destroy()
+				end
+			end
+			for _, part in next, v:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+					local Torque = Instance.new("Torque", part)
+					Torque.Torque = Vector3.new(1e6, 1e6, 1e6)
+					local AlignPosition = Instance.new("AlignPosition", part)
+					local Attachment2 = Instance.new("Attachment", part)
+					Torque.Attachment0 = Attachment2
+					AlignPosition.MaxForce = math.huge
+					AlignPosition.MaxVelocity = math.huge
+					AlignPosition.Responsiveness = 200
+					AlignPosition.Attachment0 = Attachment2
+					AlignPosition.Attachment1 = Attachment1
+				end
+			end
+		end
+	end
 
-    for _, v in next, Workspace:GetDescendants() do
-        ForceVehicle(v)
-    end
+	for _, v in next, Workspace:GetDescendants() do
+		ForceVehicle(v)
+	end
 
-    Workspace.DescendantAdded:Connect(function(v)
-        ForceVehicle(v)
-    end)
+	Workspace.DescendantAdded:Connect(function(v)
+		ForceVehicle(v)
+	end)
 
-    spawn(function()
-        while true do
-            local voidPosition = Vector3.new(223809667072, 223809667072, -223809667072)
-            Attachment1.WorldCFrame = CFrame.new(voidPosition)
-            RunService.RenderStepped:Wait()
-        end
-    end)
+	spawn(function()
+		while true do
+			Attachment1.WorldCFrame = CFrame.new(223809667072, 223809667072, -223809667072)
+			RunService.RenderStepped:Wait()
+		end
+	end)
 end
 
-local function monitorSeats()
-    for _, seat in pairs(Workspace:GetDescendants()) do
-        if seat:IsA("Seat") or seat:IsA("VehicleSeat") then
-            seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-                if seat.Occupant then
-                    local occupantPlayer = Players:GetPlayerFromCharacter(seat.Occupant.Parent)
-                    if occupantPlayer and occupantPlayer.Name == selectedPlayerName then
-                        executeScript()
-                    end
-                end
-            end)
-        end
-    end
-
-    Workspace.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("Seat") or descendant:IsA("VehicleSeat") then
-            descendant:GetPropertyChangedSignal("Occupant"):Connect(function()
-                if descendant.Occupant then
-                    local occupantPlayer = Players:GetPlayerFromCharacter(descendant.Occupant.Parent)
-                    if occupantPlayer and occupantPlayer.Name == selectedPlayerName then
-                        executeScript()
-                    end
-                end
-            end)
-        end
-    end)
-end
-
-monitorSeats()
+-- Botão: Spawn do TowTruck e ativação do detector de colisão
 Tab:AddButton({
-    Name = "Bus Fling",
-    Callback = function()
-        local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
-local Vehicles = game.Workspace:FindFirstChild("Vehicles")
-local OldPos = RootPart.CFrame
+	Name = "Spawn TowTruck e Ativar Fling",
+	Callback = function()
+		local Player = game.Players.LocalPlayer
+		local Character = Player.Character or Player.CharacterAdded:Wait()
+		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+		local RootPart = Character:WaitForChild("HumanoidRootPart")
+		local Vehicles = game.Workspace:FindFirstChild("Vehicles")
+		if not Humanoid or not Vehicles then return end
 
-if not Humanoid or not Vehicles then return end
+		local function GetCar()
+			return Vehicles:FindFirstChild(Player.Name.."Car")
+		end
 
-local function GetCar()
-    return Vehicles:FindFirstChild(Player.Name.."Car")
-end
+		local PCar = GetCar()
 
-local PCar = GetCar()
+		if not PCar then
+			RootPart.CFrame = CFrame.new(1118.81, 75.998, -1138.61)
+			task.wait(0.5)
+			local RemoteEvent = game:GetService("ReplicatedStorage"):FindFirstChild("RE")
+			if RemoteEvent and RemoteEvent:FindFirstChild("1Ca1r") then
+				RemoteEvent["1Ca1r"]:FireServer("PickingCar", "TowTruck")
+			end
+			task.wait(1)
+			PCar = GetCar()
+		end
 
-if not PCar then
-    RootPart.CFrame = CFrame.new(1118.81, 75.998, -1138.61)
-    task.wait(0.5)
-    local RemoteEvent = game:GetService("ReplicatedStorage"):FindFirstChild("RE")
-    if RemoteEvent and RemoteEvent:FindFirstChild("1Ca1r") then
-        RemoteEvent["1Ca1r"]:FireServer("PickingCar", "SchoolBus")
-    end
-    task.wait(1)
-    PCar = GetCar()
-end
-
-if PCar then
-    local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")
-    if Seat and not Humanoid.Sit then
-        repeat
-            RootPart.CFrame = Seat.CFrame * CFrame.new(0, math.random(-1, 1), 0)
-            task.wait()
-        until Humanoid.Sit or not PCar.Parent
-    end
-end
-        wait(0.2)
-        
-        local UserInputService = game:GetService("UserInputService")
-        local RunService = game:GetService("RunService")
-        local Mouse = Players.LocalPlayer:GetMouse()
-        local Folder = Instance.new("Folder", game:GetService("Workspace"))
-        local Part = Instance.new("Part", Folder)
-        local Attachment1 = Instance.new("Attachment", Part)
-        Part.Anchored = true
-        Part.CanCollide = false
-        Part.Transparency = 1
-
-        local NetworkAccess = coroutine.create(function()
-            settings().Physics.AllowSleep = false
-            while RunService.RenderStepped:Wait() do
-                for _, player in next, Players:GetPlayers() do
-                    if player ~= Players.LocalPlayer then
-                        player.MaximumSimulationRadius = 0
-                        sethiddenproperty(player, "SimulationRadius", 2)
-                    end
-                end
-                Players.LocalPlayer.MaximumSimulationRadius = math.pow(math.huge, math.huge)
-                setsimulationradius(math.huge)
-            end
-        end)
-        coroutine.resume(NetworkAccess)
-
-        local function ForceVehicle(v)
-            if v:IsA("Model") and v:FindFirstChildOfClass("VehicleSeat") then
-                Mouse.TargetFilter = v
-                for _, x in next, v:GetDescendants() do
-                    if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
-                        x:Destroy()
-                    end
-                end
-                if v:FindFirstChild("Attachment") then
-                    v:FindFirstChild("Attachment"):Destroy()
-                end
-                if v:FindFirstChild("AlignPosition") then
-                    v:FindFirstChild("AlignPosition"):Destroy()
-                end
-                if v:FindFirstChild("Torque") then
-                    v:FindFirstChild("Torque"):Destroy()
-                end
-                for _, part in next, v:GetDescendants() do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                        local Torque = Instance.new("Torque", part)
-                        Torque.Torque = Vector3.new(1000 * 102, 100000 * 102, 10000 * 12)
-                        local AlignPosition = Instance.new("AlignPosition", part)
-                        local Attachment2 = Instance.new("Attachment", part)
-                        Torque.Attachment0 = Attachment2
-                        AlignPosition.MaxForce = 99999
-                        AlignPosition.MaxVelocity = math.huge
-                        AlignPosition.Responsiveness = 200
-                        AlignPosition.Attachment0 = Attachment2
-                        AlignPosition.Attachment1 = Attachment1
-                    end
-                end
-            end
-        end
-
-        for _, v in next, game:GetService("Workspace"):GetDescendants() do
-            ForceVehicle(v)
-        end
-
-        game:GetService("Workspace").DescendantAdded:Connect(function(v)
-            ForceVehicle(v)
-        end)
-
-        spawn(function()
-            while true do
-                if selectedPlayerName then
-                    local player = Players:FindFirstChild(selectedPlayerName)
-                    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        local rootPart = player.Character.HumanoidRootPart
-                        Attachment1.WorldCFrame = rootPart.CFrame
-                    end
-                end
-                RunService.RenderStepped:Wait()
-            end
-        end)
-
-        wait(4)
-        
-        local targetPosition = Vector3.new(223809667072, 223809667072, -223809667072)
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
-
-        local function onPlayerSeated(player)
-            if player and player.Character then
-                local humanoid = player.Character:FindFirstChild("Humanoid")
-                if humanoid and humanoid.SeatPart then
-                    if humanoid.SeatPart.Parent:IsA("VehicleSeat") then
-                        player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
-                    end
-                end
-            end
-        end
-
-        game:GetService("Players").PlayerAdded:Connect(function(player)
-            if player.Name == selectedPlayerName then
-                player.CharacterAdded:Connect(function(character)
-                    local humanoid = character:WaitForChild("Humanoid")
-                    humanoid.Seated:Connect(function(_, seat)
-                        if seat then
-                            onPlayerSeated(player)
-                        end
-                    end)
-                end)
-            end
-        end)
-    end    
+		if PCar then
+			for _, part in ipairs(PCar:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Touched:Connect(function(hit)
+						local playerHit = game.Players:GetPlayerFromCharacter(hit.Parent)
+						if playerHit and playerHit.Name == selectedPlayerName then
+							executeScript()
+						end
+					end)
+				end
+			end
+		end
+	end
 })
